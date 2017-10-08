@@ -1,0 +1,18 @@
+{
+  "name": "node-work-attendance-statistics",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "michael",
+  "license": "ISC",
+  "dependencies": {
+    "colors": "^1.1.2",
+    "jsdom": "^11.2.0",
+    "moment": "^2.18.1",
+    "request": "^2.81.0",
+    "yargs": "^9.0.1"
+  }
+}
