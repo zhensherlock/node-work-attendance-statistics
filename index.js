@@ -3,6 +3,7 @@ const request = require('request');
 const jsdom = require("jsdom");
 const moment = require("moment");
 const colors = require('colors');
+const schedule = require('node-schedule');
 // moment.locale('zh-cn');
 const fs = require('fs');
 const argv = require('yargs').argv;
@@ -14,7 +15,16 @@ const holidayAPIURL = 'http://v.juhe.cn/calendar/month?year-month=%s&key=%s';
 
 _init();
 
-async function _init() {
+function _init() {
+    var rule = new schedule.RecurrenceRule();
+    rule.minute = 59;
+    schedule.scheduleJob(rule, function(){
+        _calcData();
+    });
+}
+
+
+async function _calcData() {
     const currentDate = argv.hasOwnProperty('date') ? new Date(argv.date) : new Date()
         , recordData = await _recordData(currentDate)
         , recordHolidayData = await _recordHolidayData()
