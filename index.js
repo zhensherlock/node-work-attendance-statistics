@@ -15,6 +15,10 @@ const holidayAPIURL = 'http://v.juhe.cn/calendar/month?year-month=%s&key=%s';
 
 _init();
 
+/**
+ * 程序主入口，添加定时任务
+ * @private
+ */
 function _init() {
     var rule = new schedule.RecurrenceRule();
     rule.minute = 59;
@@ -24,6 +28,11 @@ function _init() {
 }
 
 
+/**
+ * 计算签到数据入口
+ * @returns {Promise.<void>}
+ * @private
+ */
 async function _calcData() {
     const currentDate = argv.hasOwnProperty('date') ? new Date(argv.date) : new Date()
         , recordData = await _recordData(currentDate)
