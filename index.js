@@ -16,10 +16,21 @@ const holidayAPIURL = 'http://v.juhe.cn/calendar/month?year-month=%s&key=%s';
 _init();
 
 /**
- * 程序主入口，添加定时任务
+ * 程序主入口
+ * 定时任务：--schema=cycle
  * @private
  */
 function _init() {
+    if (argv.hasOwnProperty('schema') && argv.schema == 'cycle') {
+        // 定时任务
+        _cycleRun();
+    } else {
+        // 运行单次
+        _calcData();
+    }
+}
+
+function _cycleRun() {
     var rule = new schedule.RecurrenceRule();
     rule.minute = 59;
     schedule.scheduleJob(rule, function(){
