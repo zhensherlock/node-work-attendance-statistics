@@ -14,6 +14,7 @@
     "moment": "^2.18.1",
     "node-schedule": "^1.2.5",
     "request": "^2.81.0",
+    "shelljs": "^0.7.8",
     "yargs": "^9.0.1"
   }
 }
