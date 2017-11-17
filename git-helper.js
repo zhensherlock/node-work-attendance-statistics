@@ -16,13 +16,13 @@ function _handle(params) {
     }
 
     // 执行commit命令
-    if (shell.exec(util.format('git commit -am "%s"', commitMessage)).code !== 0) {
-        new Error('Error: Git commit failed');
-        return false;
-    }
+    // if (shell.exec(util.format('git commit -am "%s"', commitMessage)).code !== 0) {
+    //     new Error('Error: Git commit failed');
+    //     return false;
+    // }
 
     // 推到远端服务器上
-    if (shell.exec('git push').code !== 0) {
+    if (shell.exec('git push origin master').code !== 0) {
         new Error('Error: Git push failed');
         return false;
     }
