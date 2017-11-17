@@ -3,6 +3,7 @@ const request = require('request');
 const jsdom = require("jsdom");
 const moment = require("moment");
 const colors = require('colors');
+const gitHelper = require('git-helper');
 const schedule = require('node-schedule');
 // moment.locale('zh-cn');
 const fs = require('fs');
