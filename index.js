@@ -3,7 +3,7 @@ const request = require('request');
 const jsdom = require("jsdom");
 const moment = require("moment");
 const colors = require('colors');
-const gitHelper = require('git-helper');
+const gitHelper = require('./git-helper');
 const schedule = require('node-schedule');
 // moment.locale('zh-cn');
 const fs = require('fs');
@@ -56,6 +56,12 @@ async function _calcData() {
         , format = '当月记录范围：%s - %s\r\n当月已上小时：%s\r\n当月已上分钟：%s\r\n当月应上小时：%s'
         , rangeContext = util.format(format, startTime, endTime, sumData.hours, sumData.minutes, sumData.needHours)
     ;
+
+    // 自动提交代码
+    gitHelper.handle({
+        message: 'update database'
+    });
+
     console.log(colors.red.bold(rangeContext));
 }
 

@@ -1,8 +1,6 @@
 const shell = require('shelljs');
 const util = require('util');
 
-exports.handle = _handle;
-
 function _handle(params) {
     const format = 'Auto-commit: %s'
         , message = params.message
@@ -30,6 +28,4 @@ function _handle(params) {
     return true;
 }
 
-_handle({
-    message: 'test'
-});
+exports.handle = _handle;
