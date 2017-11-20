@@ -9,7 +9,7 @@ const schedule = require('node-schedule');
 const fs = require('fs');
 const argv = require('yargs').argv;
 const { JSDOM } = jsdom;
-const attendanceAPIPHPSESSID = 'grodu6imimajn8lacerkq3bli1';
+const attendanceAPIPHPSESSID = 'bbus2ologohce4o1lh85lntkv1';
 const attendanceAPIURL = 'http://kq.qycn.com/weixin/weixin/record';
 const holidayAPIKey = 'f74e319fd1f1563f9ce99843e9e917e5';
 const holidayAPIURL = 'http://v.juhe.cn/calendar/month?year-month=%s&key=%s';
