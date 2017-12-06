@@ -57,12 +57,12 @@ async function _calcData() {
         , rangeContext = util.format(format, startTime, endTime, sumData.hours, sumData.minutes, sumData.needHours)
     ;
 
+    console.log(colors.red.bold(rangeContext));
+
     // 自动提交代码
     gitHelper.handle({
         message: 'update database'
     });
-
-    console.log(colors.red.bold(rangeContext));
 }
 
 /**
