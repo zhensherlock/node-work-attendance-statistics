@@ -53,8 +53,8 @@ async function _calcData() {
         , startTime = currentDateRange.startTime.format('YYYY/MM/DD')
         , endTime = currentDateRange.endTime.format('YYYY/MM/DD')
         , sumData = _getSumData({ recordData, recordHolidayData, currentDateRange })
-        , format = '当月记录范围：%s - %s\r\n当月已上小时：%s\r\n当月已上分钟：%s\r\n当月应上小时：%s'
-        , rangeContext = util.format(format, startTime, endTime, sumData.workedHours, sumData.workedMinutes, sumData.allHours)
+        , format = '当月记录范围：%s - %s\r\n当月已上小时：%s\r\n当月应上小时：%s\r\n当月剩余还需上班时间：%s'
+        , rangeContext = util.format(format, startTime, endTime, sumData.workedHours, sumData.allHours, sumData.surplusHours)
     ;
 
     console.log(colors.red.bold(rangeContext));
@@ -107,6 +107,10 @@ function _getSumData({ recordData, recordHolidayData, currentDateRange }) {
         // 进入下一天
         startTime.add(1, 'days');
     }
+
+    // 计算剩余还需上班时间
+    result.surplusHours = result.allHours - result.workedHours;
+
     return result;
 }
 
