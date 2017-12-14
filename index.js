@@ -54,7 +54,7 @@ async function _calcData() {
         , endTime = currentDateRange.endTime.format('YYYY/MM/DD')
         , sumData = _getSumData({ recordData, recordHolidayData, currentDateRange })
         , format = '当月记录范围：%s - %s\r\n当月已上小时：%s\r\n当月已上分钟：%s\r\n当月应上小时：%s'
-        , rangeContext = util.format(format, startTime, endTime, sumData.hours, sumData.minutes, sumData.needHours)
+        , rangeContext = util.format(format, startTime, endTime, sumData.workedHours, sumData.workedMinutes, sumData.allHours)
     ;
 
     console.log(colors.red.bold(rangeContext));
@@ -66,41 +66,41 @@ async function _calcData() {
 }
 
 /**
- * 获取已上班时间和应上班时间
+ * 获取已上班时间、应上班时间和还需要上班时间
  * @param recordData
  * @param currentDateRange
- * @returns {{minutes: number, hours: number, needHours: number}}
+ * @returns {{workedMinutes: number, workedHours: number, allHours: number, surplusHours: number}}
  * @private
  */
 function _getSumData({ recordData, recordHolidayData, currentDateRange }) {
     var startTime = currentDateRange.startTime
         , endTime = currentDateRange.endTime
-        , result = { minutes: 0, hours: 0, needHours: 0 }
+        , result = { workedMinutes: 0, workedHours: 0, allHours: 0, surplusHours: 0 }
         , currentDayData
     ;
     while (startTime < endTime) {
         currentDayData = recordData[startTime.format('YYYY/MM/DD')];
         // 记录已上班时间
         if (currentDayData) {
-            result.minutes += currentDayData.minutes;
-            result.hours += currentDayData.hours;
+            result.workedMinutes += currentDayData.minutes;
+            result.workedHours += currentDayData.hours;
         }
 
         // 记录应上班时间
         if ([0, 6].indexOf(startTime.days()) == -1) {
-            result.needHours += 8;
+            result.allHours += 8;
         }
 
         if (recordHolidayData.hasOwnProperty(startTime.format('YYYY/MM/DD'))) {
             var holiday = recordHolidayData[startTime.format('YYYY/MM/DD')];
             // 工作添加8小时
             if (holiday.status == 'work') {
-                result.needHours += 8;
+                result.allHours += 8;
             }
 
             // 休息减少8小时
             if (holiday.status == 'rest') {
-                result.needHours -= 8;
+                result.allHours -= 8;
             }
         }
 
