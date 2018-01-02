@@ -5,6 +5,7 @@ const moment = require("moment");
 const colors = require('colors');
 const gitHelper = require('./git-helper');
 const schedule = require('node-schedule');
+const _ = require('lodash');
 // moment.locale('zh-cn');
 const fs = require('fs');
 const argv = require('yargs').argv;
@@ -22,7 +23,11 @@ _init();
  * @private
  */
 function _init() {
-    if (argv.hasOwnProperty('schema') && argv.schema == 'cycle') {
+    if (argv.hasOwnProperty('check')) {
+        // 检查数据
+        _checkData()
+    }
+    else if (argv.hasOwnProperty('schema') && argv.schema == 'cycle') {
         // 定时任务
         _cycleRun();
     } else {
@@ -31,6 +36,31 @@ function _init() {
     }
 }
 
+/**
+ * 检查数据
+ * @private
+ */
+function _checkData() {
+    const filePath = 'static/db.json';
+    let dbResult = JSON.parse(fs.readFileSync(filePath));
+
+    for (let item of Object.values(dbResult)) {
+        let recordItem = {
+            startTime: moment(item.startTime),
+            endTime: moment(item.endTime)
+        };
+        let recordMinutes = _getRecordMinutes(recordItem);
+        item.minutes = recordMinutes;
+        item.hours = recordMinutes / 60;
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(dbResult));
+}
+
+/**
+ * 定时执行
+ * @private
+ */
 function _cycleRun() {
     var rule = new schedule.RecurrenceRule();
     rule.minute = 59;
@@ -48,59 +78,60 @@ function _cycleRun() {
 async function _calcData() {
     const currentDate = argv.hasOwnProperty('date') ? new Date(argv.date) : new Date()
         , recordData = await _recordData(currentDate)
-        , recordHolidayData = await _recordHolidayData()
-        , currentDateRange = _getDateRange(currentDate)
-        , startTime = currentDateRange.startTime.format('YYYY/MM/DD')
-        , endTime = currentDateRange.endTime.format('YYYY/MM/DD')
-        , sumData = _getSumData({ recordData, recordHolidayData, currentDateRange })
-        , format = '当月记录范围：%s - %s\r\n当月已上小时：%s\r\n当月应上小时：%s\r\n当月剩余还需上班时间：%s'
-        , rangeContext = util.format(format, startTime, endTime, sumData.workedHours, sumData.allHours, sumData.surplusHours)
+        , recordHolidayData = await _recordHolidayData(currentDate)
+        , dateRange = _getDateRange(currentDate)
+        , startTime = dateRange.startTime.format('YYYY/MM/DD')
+        , endTime = dateRange.endTime.format('YYYY/MM/DD')
+        , sumData = _getSumData({ recordData, recordHolidayData, dateRange, currentDate })
+        , rangeContext = `
+当月记录范围：${startTime} - ${endTime}
+当月已上班时间：${sumData.workedHours}小时
+当月应上班时间：${sumData.allHours}小时
+当月剩余还需上班时间：${sumData.surplusHours}小时
+建议剩余每日上班时间：${sumData.surplusHours / sumData.surplusDays}小时
+`
     ;
 
-    console.log(colors.red.bold(rangeContext));
+    console.log(colors.red.bold(rangeContext.trim()));
 
     // 自动提交代码
-    gitHelper.handle({
-        message: 'update database'
-    });
+    // gitHelper.handle({
+    //     message: 'update database'
+    // });
 }
 
 /**
- * 获取已上班时间、应上班时间和还需要上班时间
+ * 获取已打卡时间、应上班时间和还需要上班时间
  * @param recordData
- * @param currentDateRange
- * @returns {{workedMinutes: number, workedHours: number, allHours: number, surplusHours: number}}
+ * @param recordHolidayData
+ * @param dateRange
+ * @param currentDate
+ * @returns {{workedHours: number, workedDays: number, allHours: number, allDays: number, surplusHours: number, surplusDays: number}}
  * @private
  */
-function _getSumData({ recordData, recordHolidayData, currentDateRange }) {
-    var startTime = currentDateRange.startTime
-        , endTime = currentDateRange.endTime
-        , result = { workedMinutes: 0, workedHours: 0, allHours: 0, surplusHours: 0 }
+function _getSumData({ recordData, recordHolidayData, dateRange, currentDate }) {
+    var startTime = dateRange.startTime
+        , endTime = dateRange.endTime
+        , result = { workedHours: 0, spendDays: 0, allHours: 0, allDays: 0, surplusHours: 0, surplusDays: 0 }
         , currentDayData
     ;
-    while (startTime < endTime) {
+    while (startTime <= endTime) {
+        // 休假日需要上班标识
+        let holidayNeedWork = recordHolidayData.hasOwnProperty(startTime.format('YYYY/MM/DD')) &&
+            recordHolidayData[startTime.format('YYYY/MM/DD')].status == 'work'
         currentDayData = recordData[startTime.format('YYYY/MM/DD')];
-        // 记录已上班时间
+        // 记录已打卡时间
         if (currentDayData) {
-            result.workedMinutes += currentDayData.minutes;
             result.workedHours += currentDayData.hours;
         }
 
-        // 记录应上班时间
-        if ([0, 6].indexOf(startTime.days()) == -1) {
+        // 记录应上班时间，工作添加8小时
+        if ([0, 6].indexOf(startTime.days()) == -1 || holidayNeedWork) {
             result.allHours += 8;
-        }
-
-        if (recordHolidayData.hasOwnProperty(startTime.format('YYYY/MM/DD'))) {
-            var holiday = recordHolidayData[startTime.format('YYYY/MM/DD')];
-            // 工作添加8小时
-            if (holiday.status == 'work') {
-                result.allHours += 8;
-            }
-
-            // 休息减少8小时
-            if (holiday.status == 'rest') {
-                result.allHours -= 8;
+            result.allDays++;
+            // 记录度过的时间
+            if (startTime < currentDate) {
+                result.spendDays += 1;
             }
         }
 
@@ -110,20 +141,22 @@ function _getSumData({ recordData, recordHolidayData, currentDateRange }) {
 
     // 计算剩余还需上班时间
     result.surplusHours = result.allHours - result.workedHours;
+    result.surplusDays = result.allDays - result.spendDays;
 
     return result;
 }
 
 /**
  * 获取近期假期并保存到本地
- * @returns {Promise}
+ * @param currentDate
+ * @returns {Promise<any>}
  * @private
  */
-function _recordHolidayData() {
+function _recordHolidayData(currentDate) {
     const filePath = 'static/holidaydb.json';
     var requestJar = request.jar()
         , dbResult = JSON.parse(fs.readFileSync(filePath))
-        , month = '2017-9'
+        , month = moment(currentDate).format('YYYY-M')
     ;
 
     return new Promise((resolve, reject) => {
@@ -252,11 +285,13 @@ function _getDateRange(date) {
      */
     if (currentDay >= 26) {
         startTime = moment(new Date(currentYear + '/' + currentMonth + '/' + startDayNumber));
-        endTime = moment(new Date(currentYear + '/' + (currentMonth + 1) + '/' + endDayNumber));
+        endTime = _.cloneDeep(startTime).add(1, 'months').set('date', 25)
+        // endTime = moment(new Date(currentYear + '/' + (currentMonth + 1) + '/' + endDayNumber));
     }
     else {
-        startTime = moment(new Date(currentYear + '/' + (currentMonth - 1) + '/' + startDayNumber));
         endTime = moment(new Date(currentYear + '/' + currentMonth + '/' + endDayNumber));
+        startTime = _.cloneDeep(endTime).subtract(1, 'months').set('date', 26);
+        // startTime = moment(new Date(currentYear + '/' + (currentMonth - 1) + '/' + startDayNumber));
     }
     return { startTime, endTime };
 }
@@ -276,7 +311,7 @@ function _handleDayDate({ currentDate, domItem, dbResult, dateData }) {
         , time = texts[2]
     ;
 
-    var recordMinutes;
+    let recordMinutes;
 
     // 如果没有当前时间的数据，先设置开始时间
     if (!dateData[date]) {
